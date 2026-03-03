@@ -1,0 +1,13 @@
+CPMAddPackage(
+    NAME CURL
+    GITHUB_REPOSITORY curl/curl
+    GIT_TAG curl-8_5_0
+    OPTIONS
+        "BUILD_SHARED_LIBS OFF"
+        "BUILD_TESTING OFF"
+        "BUILD_CURL_EXE OFF"
+        "CURL_USE_OPENSSL ON"
+        "CURL_DISABLE_LDAP ON"
+        "CURL_DISABLE_LDAPS ON"
+        "HTTP_ONLY ON"
+)
