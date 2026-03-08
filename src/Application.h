@@ -10,11 +10,11 @@
 #include <fftw3.h>
 #include "BladeRF.h"
 
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH 1980
+#define WINDOW_HEIGHT 1080
 
-#define FFT_BINS 1024
-#define WATERFALL_HEIGHT WINDOW_HEIGHT
+#define FFT_BINS 2048
+#define WATERFALL_HEIGHT 720
 
 namespace core {
 
@@ -34,6 +34,7 @@ private:
     void sampleConsumerThreadProc();
     void waterfallFeedSamples(std::vector<std::complex<float>> const& iq);
     void waterfallRender();
+    void spectrogramRender();
     void turboColormap(float x, uint8_t& r, uint8_t& g, uint8_t& b);
     void fmDemodulate(std::vector<std::complex<float>>& sig, std::vector<float>& out);
     void dcBlock(std::vector<float>& sig);
@@ -54,6 +55,7 @@ private:
     DecimatorCoeffs m_dec_post;
 
     std::uint8_t m_waterfall_rgb[WATERFALL_HEIGHT][FFT_BINS][3];
+    float m_spectrogram[FFT_BINS];
     float m_hamm[FFT_BINS];
     GLuint m_waterfall_tex;
 

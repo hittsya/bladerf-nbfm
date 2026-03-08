@@ -80,6 +80,9 @@ bool core::Application::setup()
     m_dec_post.M = 4;
     makeLowPass(16000.0 / (SDR_SAMPLERATE / m_dec_pre.M / 2.0), 4*4, m_dec_post);
 
+    memset(m_waterfall_rgb, 0, WATERFALL_HEIGHT*FFT_BINS*3);
+    memset(m_spectrogram, 0, FFT_BINS*sizeof(float));
+
     m_sdr = std::make_unique<sdr::BladeRF>();
     m_rx_running = true;
     m_rx_thread  = std::thread([this]() { sampleConsumerThreadProc(); });
@@ -113,7 +116,7 @@ void core::Application::sampleConsumerThreadProc()
         decimateSig(demodulated, audio, m_dec_post);
 
         for(int i=0; i < audio.size(); ++i)
-            audio[i] = std::clamp(audio[i], -0.875f, 0.875f);
+            audio[i] = std::clamp(audio[i], -0.75f, 0.75f);
 
         SDL_PutAudioStreamData(m_audio_stream, audio.data(), audio.size() * sizeof(float));
         waterfallFeedSamples(iq);
@@ -177,6 +180,8 @@ void core::Application::waterfallFeedSamples(std::vector<std::complex<float>> co
                       m_waterfall_rgb[0][shifted][0],
                       m_waterfall_rgb[0][shifted][1],
                       m_waterfall_rgb[0][shifted][2]);
+
+        m_spectrogram[shifted] = norm;
     }
 }
 
@@ -252,13 +257,31 @@ void core::Application::turboColormap(float x, uint8_t& r, uint8_t& g, uint8_t& 
     b = static_cast<uint8_t>(std::clamp(bf,0.0f,1.0f)*255.0f);
 }
 
+void core::Application::spectrogramRender()
+{
+    ImDrawList* draw = ImGui::GetBackgroundDrawList();
+    static ImVec2 line_pts[FFT_BINS];
+
+    float width  = WINDOW_WIDTH;
+    float height = WINDOW_HEIGHT - WATERFALL_HEIGHT;
+    float base_y = WATERFALL_HEIGHT + height;
+
+    for (size_t i = 0; i < FFT_BINS; i++) {
+        float x = ((float)i / (FFT_BINS - 1)) * width;
+        float y = (1.0f - m_spectrogram[i]) * height;
+        line_pts[i] = {x, y};
+    }
+
+    draw->AddPolyline(line_pts, FFT_BINS, IM_COL32(255,255,255,255), ImDrawFlags_None, 2.0f);
+}
+
 void core::Application::waterfallRender()
 {
     glBindTexture(GL_TEXTURE_2D, m_waterfall_tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FFT_BINS, WATERFALL_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, m_waterfall_rgb);
     ImDrawList* draw = ImGui::GetBackgroundDrawList();
-    ImVec2 pos = {0,0};
-    ImVec2 size = {WINDOW_WIDTH, WINDOW_HEIGHT};
+    ImVec2 pos = {0, WINDOW_HEIGHT - WATERFALL_HEIGHT};
+    ImVec2 size = {WINDOW_WIDTH, WATERFALL_HEIGHT};
     draw->AddImage((ImTextureID)(intptr_t)m_waterfall_tex, pos, {pos.x + size.x, pos.y + size.y});
 }
 
@@ -303,17 +326,21 @@ void core::Application::loop()
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        static uint64_t freq_hz = 86300000;
-        float freq_mhz = freq_hz / 1e6f;
-
-        ImGui::InputFloat("Frequency (MHz)", &freq_mhz, 0.1f, 1.0f, "%.1f");
-        if (ImGui::IsItemDeactivatedAfterEdit())
+        if (m_sdr->getIsStarted())
         {
-            freq_mhz = std::round(freq_mhz * 10.0f) / 10.0f;
-            freq_hz = (uint64_t)(freq_mhz * 1e6);
-            m_sdr->setRxFrequency(freq_hz);
+            static uint64_t freq_hz = 86300000;
+            float freq_mhz = freq_hz / 1e6f;
+
+            ImGui::InputFloat("Frequency (MHz)", &freq_mhz, 0.1f, 1.0f, "%.1f");
+            if (ImGui::IsItemDeactivatedAfterEdit())
+            {
+                freq_mhz = std::round(freq_mhz * 10.0f) / 10.0f;
+                freq_hz = (uint64_t)(freq_mhz * 1e6);
+                m_sdr->setRxFrequency(freq_hz);
+            }
         }
 
+        spectrogramRender();
         waterfallRender();
 
         ImGui::Render();

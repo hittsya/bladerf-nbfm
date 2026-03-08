@@ -86,7 +86,7 @@ bool sdr::BladeRF::setup()
         goto exit_error;
     }
 
-    if (!setRxFrequency(99.3e6)) {
+    if (!setRxFrequency(94.3e6)) {
         goto exit_error;
     }
 
