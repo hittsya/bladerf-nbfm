@@ -4,6 +4,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
+#include <pthread.h>
+#include <sched.h>
 #include <imgui.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -92,6 +94,13 @@ bool core::Application::setup()
 void core::Application::sampleConsumerThreadProc()
 {
     logger::core()->info("Starting RX reciever thread...");
+
+    pthread_t this_thread = pthread_self();
+    struct sched_param params;
+    params.sched_priority = 50;
+    if(pthread_setschedparam(this_thread, SCHED_FIFO, &params) != 0) {
+        logger::core()->error("Failed setting thread prio");
+    }
 
     m_sdr->setup();
     m_sdr->startRxStream();

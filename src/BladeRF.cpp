@@ -6,7 +6,6 @@
 #include <format>
 #include <filesystem>
 #include <curl/curl.h>
-
 #include <SDL3/SDL.h>
 
 namespace fs = std::filesystem;
@@ -122,7 +121,7 @@ bool sdr::BladeRF::startRxStream()
         return false;
     }
 
-    int status = bladerf_sync_config(m_bladerf, BLADERF_RX_X1, BLADERF_FORMAT_SC16_Q11_META, num_buffers, buffer_size, num_transfers, timeout_ms);
+    int status = bladerf_sync_config(m_bladerf, BLADERF_RX_X1, BLADERF_FORMAT_SC16_Q11, num_buffers, buffer_size, num_transfers, timeout_ms);
     if (status != 0) {
         logger::sdr()->error("bladerf_sync_config() failed");
         return false;
@@ -143,19 +142,14 @@ bool sdr::BladeRF::receive(std::vector<std::complex<float>>& out)
 {
     constexpr auto scale = 1.0f / 2047.0f;
     static std::int16_t rx_buffer[SAMPLES_PER_RX*2];
-    static bladerf_metadata meta{};
-    meta.flags = BLADERF_META_FLAG_RX_NOW;
 
-    auto status = bladerf_sync_rx(m_bladerf, rx_buffer, SAMPLES_PER_RX, &meta, timeout_ms);
+    auto status = bladerf_sync_rx(m_bladerf, rx_buffer, SAMPLES_PER_RX, nullptr, timeout_ms);
     if (status != 0) {
         logger::sdr()->error(fmt::format("RX error: {}", bladerf_strerror(status)));
         return false;
     }
 
-    if (meta.status & BLADERF_META_STATUS_OVERRUN)
-        logger::sdr()->warn("receive() error: RX overrun");
-
-    #pragma omp parallel for
+    #pragma omp simd
     for (size_t i = 0; i < SAMPLES_PER_RX; ++i)
         out[i] = std::complex<float>(rx_buffer[2*i+0]*scale, rx_buffer[2*i+1]*scale);
 

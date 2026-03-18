@@ -4,9 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include <thread>
 #include <complex>
-#include <atomic>
 
 #define SAMPLES_PER_RX 8192*2
 
@@ -27,10 +25,10 @@ private:
     static bool downloadBitstreamFiles();
     static bool downloadFile(std::string const& url, std::string const& filename);
 private:
-    static constexpr unsigned int num_buffers   = 16;
-    static constexpr unsigned int buffer_size   = 8192;
+    static constexpr unsigned int num_buffers   = 32;
+    static constexpr unsigned int buffer_size   = 8192*2;
     static constexpr unsigned int num_transfers = 8;
-    static constexpr unsigned int timeout_ms    = 3500;
+    static constexpr unsigned int timeout_ms    = 5000;
 
     std::string m_serial;
     bladerf* m_bladerf;

@@ -61,7 +61,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 2.5e6
+    value: 1.0e6
   states:
     bus_sink: false
     bus_source: false
@@ -101,6 +101,7 @@ blocks:
     offset: '0'
     phase: '0'
     samp_rate: samp_rate
+    showports: 'False'
     type: complex
     waveform: analog.GR_COS_WAVE
   states:
@@ -116,7 +117,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    device_name: ''
+    device_name: plughw:2,0
     num_inputs: '1'
     ok_to_block: 'True'
     samp_rate: '48000'
@@ -731,3 +732,4 @@ connections:
 
 metadata:
   file_format: 1
+  grc_version: 3.10.12.0
